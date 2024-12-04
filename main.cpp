@@ -5,29 +5,21 @@
 #include "utils.h"
 using namespace std;
 
-/***************************************************************/
-/** ВСЕ ПАРАМЕТРЫ ВВОДИМ С '.0', ЧТОБЫ ОНИ БЫЛИ ТИПА float ! **/
-/***************************************************************/
 // Исходое уравнение: A * d^2u/dx^2 + B * du/dx + C = 0
-#define PARAM_A 3.0
-#define PARAM_B -5.0
-#define PARAM_C 10.0
+#define A 3.0
+#define B -5.0
+#define C 10.0
 
 // Граничные условия вида: u(x1) = y1; u(x2) = y2
 // X1 должен быть меньше X2 - это начало и конец отрезка решения
-#define GU_X1 2.0
-#define GU_Y1 0.0
-#define GU_X2 15.0
-#define GU_Y2 10.0
-#define GU_L (GU_X2 - GU_X1)
+#define X1 2.0
+#define Y1 0.0
+#define X2 15.0
+#define Y2 10.0
+#define L (X2 - X1)
 
-// Количество конечных элементов для расчета
-// тут можно целые числа без '.0'
 #define NODES_COUNT_1 20
 #define NODES_COUNT_2 40
-/***************************************************************/
-/** ВСЕ ПАРАМЕТРЫ ВВОДИМ С '.0', ЧТОБЫ ОНИ БЫЛИ ТИПА float ! **/
-/***************************************************************/
 
 #define OUTPUT_PATH(filename) (std::string("./results/") + std::string(filename))
 
@@ -41,87 +33,96 @@ Vector orig20, orig40;
 
 // --- Генерация сетки по Х ---
 Vector generateXVector(const size_t nodesCount) {
-    Vector result;
-    const double dx = GU_L / (nodesCount - 1);
-    double x = GU_X1;
-    for (size_t i = 0; i < nodesCount; i++) {
-        result.push_back(x);
-        x += dx;
+    const double dx = L / (nodesCount - 1);
+    Vector result(nodesCount);
+    for (size_t i = 0; i < nodesCount; ++i) {
+        result[i] = X1 + i * dx;
     }
     return result;
 }
 
+
 // --- Аналитическое решение ---
 Vector analyticalSolution(const Vector &xValues) {
-    // Решем ОДУ
+    // Константы для решения
     const double L1 = 0;
-    const double L2 = (-PARAM_B) / PARAM_A;
-    // ОДУ: y(x) = C1 + C2 * e^(L2*x)
+    const double L2 = -B / A;
 
-    // Ищем частное решение ЛНДУ
-    // ax + b = 0
-    // PARAM_B * a + PARAM_C = 0
-    const double a = (-PARAM_C) / PARAM_B;
-    const double b = 0;
-    // ЛНДУ: y(x) = a * x
+    // Частное решение ЛНДУ
+    const double a = -C / B;
+    const double b = 0; // Можно опустить, так как b всегда 0
 
-    // Полный вид решения: y(x) = C1 + C2 * e^(L2*x) + a * x
-    // Находим C1 и C2
+    // Вычисление C2 и C1
+    const double expL2X1 = exp(L2 * X1);
+    const double expL2X2 = exp(L2 * X2);
+    const double C2 = (-Y2 + Y1 + a * (X2 - X1)) / (expL2X1 - expL2X2);
+    const double C1 = Y1 - C2 * expL2X1 - a * X1;
 
-    // / Y1 = C1 + C2 * e^(L2*X1) + a * X1
-    // \ Y2 = C1 + C2 * e^(L2*X2) + a * X2
-    // / C1 = -(C2 * e^(L2*X1) + a * X1 - Y1)
-    // \ C2 = (-Y2 - a * X1 + Y1 + a * X2) / (e^(L2*X1) - e^(L2*X2))
-    const double C2 = (-GU_Y2 - a * GU_X1 + GU_Y1 + a * GU_X2) / (exp(L2*GU_X1) - exp(L2*GU_X2));
-    const double C1 = -(C2 * exp(L2*GU_X1) + a * GU_X1 - GU_Y1);
+    // Вывод общего решения
+    cout << "Аналитическое решение: y(x) = " << C1 
+         << " + " << C2 << " * e^(" << L2 << " * x) + x" << endl;
 
-    // Полное решение задачи Коши:
-    cout << "Analytical solution: y(x) = " << C1 << " + " << C2 << " * e^(" << L2 << " * x) + x" << endl;
-    function<double (double)> func = [C1, C2, L1, L2](double x) {
-        return C1 + C2 * exp(L2*x) + x;
+    // Лямбда-функция для вычисления y(x)
+    auto computeY = [C1, C2, L2](double x) {
+        return C1 + C2 * exp(L2 * x) + x;
     };
 
-    Vector result;
-    for (double x: xValues)
-        result.push_back(func(x));
+    // Генерация результата
+    Vector result(xValues.size());
+    transform(xValues.begin(), xValues.end(), result.begin(), computeY);
+
     return result;
 }
 
+
 // --- Решение через МКЭ ---
 MatrixVector generateLinearElementModel(const size_t elementsCount) {
-    double dx = GU_L / (elementsCount - 1);
+    const double dx = L / (elementsCount - 1);
 
-    Matrix localMatrixRigidity = {
-            { PARAM_A / dx - PARAM_B / 2, -PARAM_A / dx + PARAM_B / 2 },
-            { -PARAM_A / dx - PARAM_B / 2, PARAM_A / dx + PARAM_B / 2 },
-    };
-    Vector localLoadsVector = {
-            PARAM_C * dx / 2,
-            PARAM_C * dx / 2,
-    };
+    // Локальная матрица жесткости
+    Matrix localMatrixRigidity(2, Vector(2));
+    localMatrixRigidity[0][0] = A / dx - B / 2;
+    localMatrixRigidity[0][1] = -A / dx + B / 2;
+    localMatrixRigidity[1][0] = -A / dx - B / 2;
+    localMatrixRigidity[1][1] = A / dx + B / 2;
 
-    return MatrixVector(localMatrixRigidity, localLoadsVector);
+    // Локальный вектор нагрузок
+    Vector localLoadsVector(2);
+    localLoadsVector[0] = C * dx / 2;
+    localLoadsVector[1] = C * dx / 2;
+
+    // Возвращаем результат
+    return {localMatrixRigidity, localLoadsVector};
 }
+
 
 MatrixVector generateCubicElementModel(const size_t elementsCount) {
-    double dx = GU_L / (elementsCount - 1);
+    const double dx = L / (elementsCount - 1);
 
-    Matrix localMatrixRigidity = {
-            { PARAM_A * 37/(10*dx) + PARAM_B * 1/2,  -PARAM_A * 13/(40*dx) - PARAM_B * 7/80 },
-            { -PARAM_A * 13/(40*dx) + PARAM_B * 7/80,  PARAM_A * 37/(10*dx) - PARAM_B * 1/2 },
-    };
-    Vector localLoadsVector = {
-            PARAM_C * dx / 8,
-            PARAM_C * dx / 8,
-    };
+    // Локальная матрица жесткости
+    Matrix localMatrixRigidity(2, Vector(2));
+    localMatrixRigidity[0][0] = A * 37 / (10 * dx) + B * 1 / 2;
+    localMatrixRigidity[0][1] = -A * 13 / (40 * dx) - B * 7 / 80;
+    localMatrixRigidity[1][0] = -A * 13 / (40 * dx) + B * 7 / 80;
+    localMatrixRigidity[1][1] = A * 37 / (10 * dx) - B * 1 / 2;
 
-    return MatrixVector(localMatrixRigidity, localLoadsVector);
+    // Локальный вектор нагрузок
+    Vector localLoadsVector(2);
+    localLoadsVector[0] = C * dx / 8;
+    localLoadsVector[1] = C * dx / 8;
+
+    // Возвращаем результат
+    return {localMatrixRigidity, localLoadsVector};
 }
 
+
 pair<Matrix, Vector> assemble(const Matrix &localMatrix, const Vector &localVector, const size_t n) {
+    // Инициализация глобальной матрицы и вектора
+    Matrix matrix(n + 1, Vector(n + 1, 0.0));
+    Vector vector(n + 1, 0.0);
+
     // Ансамблирование матрицы
-    Matrix matrix SET_DIMENSIONS(n+1, n+1);
-    for (int i = 0; i < n; i++) {
+    for (size_t i = 0; i < n; ++i) {
         matrix[i][i] += localMatrix[0][0];
         matrix[i][i + 1] += localMatrix[0][1];
         matrix[i + 1][i] += localMatrix[1][0];
@@ -129,40 +130,41 @@ pair<Matrix, Vector> assemble(const Matrix &localMatrix, const Vector &localVect
     }
 
     // Ансамблирование вектора
-    Vector vector SET_SIZE(n+1);
-    for (int i = 0; i < n; i++) {
+    for (size_t i = 0; i < n; ++i) {
         vector[i] += localVector[0];
         vector[i + 1] += localVector[1];
     }
 
-    // Если задано не значение функции в ГУ, а её производной, то из первой или последней строки вектора надо вычесть A * Y1
-    // vector[0] -= PARAM_A * GU_Y1; // первая
-    // vector[n] -= PARAM_A * GU_Y2; // последняя
-    // Если задано значениние функции в ГУ, то первая или последняя строка - вообще уравнения в явном виде: y(X1) = Y2
-    // первая
-    vector[0] = GU_Y1;
-    matrix[0][0] = 1;
-    matrix[0][1] = 0;
-    // последняя
-    vector[n] = GU_Y2;
-    matrix[n][n] = 1;
-    matrix[n][n - 1] = 0;
+    // Граничные условия
+    // Условие на левом краю: y(X1) = Y1
+    vector[0] = Y1;
+    matrix[0][0] = 1.0;
+    matrix[0][1] = 0.0;
 
-    return MatrixVector(matrix, vector);
+    // Условие на правом краю: y(X2) = Y2
+    vector[n] = Y2;
+    matrix[n][n] = 1.0;
+    matrix[n][n - 1] = 0.0;
+
+    return {matrix, vector};
 }
+
 
 Vector MKESolution(const MatrixVector &elementModel, const size_t elementsCount) {
-    MatrixVector assembled = assemble(elementModel.first, elementModel.second, elementsCount - 1);
-    Matrix assembledMatrix = assembled.first;
-    Vector assembledVector = assembled.second;
+    // Ансамблирование глобальной матрицы и вектора
+    auto [assembledMatrix, assembledVector] = 
+        assemble(elementModel.first, elementModel.second, elementsCount - 1);
 
+    // Решение системы методом Гаусса
     if (solveGaussian(assembledMatrix, assembledVector) != 0) {
-        std::cerr << "Error: degraded matrix\n";
-        exit(-1);
+        std::cerr << "Error: Singular matrix encountered during Gaussian elimination.\n";
+        exit(EXIT_FAILURE);
     }
 
-    return assembledVector; // gaussSolve изменила данные в assembledVector
+    // Возвращаем решение
+    return assembledVector; // assembledVector содержит результат
 }
+
 
 // --- MAIN ---
 int main() {

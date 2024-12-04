@@ -1,7 +1,3 @@
-//
-// Created by Сергей Тяпкин on 17.12.2022.
-//
-
 #ifndef SRC_UTILS_H
 #define SRC_UTILS_H
 
