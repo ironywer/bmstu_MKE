@@ -129,6 +129,13 @@ pair<Matrix, Vector> assemble(const Matrix &localMatrix, const Vector &localVect
         matrix[i + 1][i + 1] += localMatrix[1][1];
     }
 
+    // for (size_t i =0; i<n+1; i++){
+    //     for (size_t j =0; j<n+1; j++){
+    //     cout << matrix[i][j] << " ";
+    //     }
+    //     cout << endl;
+    // }
+
     // Ансамблирование вектора
     for (size_t i = 0; i < n; ++i) {
         vector[i] += localVector[0];
@@ -175,7 +182,6 @@ int main() {
 
     cout << "- xValues generated" << endl;
 
-    // Решаем наше уравнение по-всякому
     Vector analyticalSolution_20nodes = orig20 = analyticalSolution(xVector1);
     Vector analyticalSolution_40nodes = orig40 = analyticalSolution(xVector2);
     Vector linearSolution_20nodes = MKESolution(generateLinearElementModel(NODES_COUNT_1), NODES_COUNT_1); linearSolution_20nodes = pod(orig20, 10);
@@ -184,7 +190,6 @@ int main() {
     Vector cubicSolution_40nodes = MKESolution(generateCubicElementModel(NODES_COUNT_2), NODES_COUNT_2); cubicSolution_40nodes = pod(orig40, 1);
 
     cout << "- Solved with 3 methods" << endl;
-    // Записываем все решения в файлы
     writeVectorToFile(xVector1, analyticalSolution_20nodes, OUTPUT_PATH("analyticalSolution_20nodes.txt"));
     writeVectorToFile(xVector2, analyticalSolution_40nodes, OUTPUT_PATH("analyticalSolution_40nodes.txt"));
     writeVectorToFile(xVector1, linearSolution_20nodes, OUTPUT_PATH("linearSolution_20nodes.txt"));

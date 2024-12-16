@@ -50,8 +50,8 @@ def main(cubic_file, linear_file, another_file, num_nodes):
 
     # Настройки графика
     plt.title(f"Решения для {num_nodes} КЭ", fontsize=14)
-    plt.xlabel("Количество КЭ", fontsize=12)
-    plt.ylabel("Абсолютная погрешность", fontsize=12)
+    plt.xlabel("Значения Х", fontsize=12)
+    plt.ylabel("ЗЗначеенниия У", fontsize=12)
     plt.legend(fontsize=10)
     plt.grid(True, linestyle='--', alpha=0.7)
 
