@@ -7,7 +7,7 @@ RESULT_DIR="results"
 mkdir -p $RESULT_DIR
 
 # Компиляция C++ файлов
-g++ main.cpp utils.cpp -o program -lm
+g++ main.cpp utils.cpp methods.cpp -o program -lm
 
 # Проверка успешности компиляции
 if [ $? -ne 0 ]; then
