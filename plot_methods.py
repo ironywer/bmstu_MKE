@@ -25,22 +25,21 @@ def read_values(filename):
 
 def main(cubic_file, linear_file, another_file, num_nodes):
     # Формируем пути для файлов
-    cubic_path = os.path.join(RESULT_DIR, cubic_file if cubic_file else f"cubicSolution_{num_nodes}nodes.txt")
-    linear_path = os.path.join(RESULT_DIR, linear_file if linear_file else f"linearSolution_{num_nodes}nodes.txt")
-    another_path = os.path.join(RESULT_DIR, another_file if another_file else f"analyticalSolution_{num_nodes}nodes.txt")
-
+    cubic_path = os.path.join(RESULT_DIR, cubic_file if cubic_file else f"cubic_{num_nodes}ns.txt")
+    linear_path = os.path.join(RESULT_DIR, linear_file if linear_file else f"linear_{num_nodes}ns.txt")
+    another_path = os.path.join(RESULT_DIR, another_file if another_file else f"analytical_{num_nodes}ns.txt")
     # Считываем данные из файлов
     x1, y1 = read_values(cubic_path)
     x2, y2 = read_values(linear_path)
     x3, y3 = read_values(another_path)
 
     # Проверка, что все x одинаковые для всех решений (для корректного построения графика)
-    if not (len(x1 )== len(x2) == len(x3)):
-        raise ValueError("Количество x в файлах должны совпадать.")
+    # if not (len(x1 )== len(x2) == len(x3)):
+    #     raise ValueError("Количество x в файлах должны совпадать.")
 
     # Проверка длины данных
-    if len(x1) != num_nodes or len(y1) != num_nodes or len(y2) != num_nodes or len(y3) != num_nodes:
-        raise ValueError(f"Количество значений x и y в файлах должно совпадать с количеством узлов ({num_nodes}).")
+    # if len(x1) != num_nodes or len(y1) != num_nodes or len(y2) != num_nodes or len(y3) != num_nodes:
+    #     raise ValueError(f"Количество значений x и y в файлах должно совпадать с количеством узлов ({num_nodes}).")
 
     # Построение графика
     plt.figure(figsize=(10, 6))

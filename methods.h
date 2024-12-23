@@ -20,8 +20,8 @@ using namespace std;
 #define Y2 10.0
 #define L (X2 - X1)
 
-#define NODES_COUNT_1 20
-#define NODES_COUNT_2 40
+#define ELEM_COUNT_1 20
+#define ELEM_COUNT_2 40
 
 #define OUTPUT_PATH(filename) (std::string("./results/") + std::string(filename))
 
@@ -37,8 +37,8 @@ Vector generateXVector(const size_t nodesCount);
 Vector analyticalSolution(const Vector &xValues);
 MatrixVector generateLinearElementModel(const size_t elementsCount);
 MatrixVector generateCubicElementModel(const size_t elementsCount);
-pair<Matrix, Vector> assemble(const Matrix &localMatrix, const Vector &localVector, const size_t n);
-Vector MKESolution(const MatrixVector &elementModel, const size_t elementsCount);
+pair<Matrix, Vector> assemble(const Matrix &localMatrix, const Vector &localVector, const size_t n, char method);
+Vector MKESolution(const MatrixVector &elementModel, const size_t elementsCount, char method);
 
 
 #endif

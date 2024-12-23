@@ -8,7 +8,7 @@
 #include <iostream>
 
 void writeVectorToFile(const std::vector<double> &data, const std::vector<double> &results, const std::string &filename);
-int solveGaussian(std::vector<std::vector<double>> &m, std::vector<double> &b);
+int solveSLAU(std::vector <double> &retXVector, std::vector<std::vector<double>>inAMatrix , std::vector<double> inBVector);
 std::vector<double> pod(const std::vector<double> &orig, const double add);
 
 #endif //SRC_UTILS_H
